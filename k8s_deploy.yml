@@ -1,0 +1,39 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: UdacityCapstone-K8SCluster
+spec:
+  type: LoadBalancer
+  selector:
+    app: UdacityCapstone-K8SCluster
+  ports:
+    - port: 80
+      targetPort: 80
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: UdacityCapstone-K8SCluster-Deploy
+spec:
+  selector:
+    matchLabels:
+      app: UdacityCapstone-K8SCluster
+  replicas: 4
+  template:
+    metadata:
+      labels:
+        app: UdacityCapstone-K8SCluster
+    spec:
+      containers:
+        - name: UdacityCapstone-K8SCluster-Pod
+          image: vaib79/UdacityCapstone-K8SCluster:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 80
+              protocol: TCP
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 1
+  minReadySeconds: 10

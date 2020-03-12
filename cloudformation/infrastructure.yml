@@ -1,0 +1,210 @@
+Description: >
+  Udacity Cloud DevOps Nandegree Capstone Project
+Parameters:
+  EnvironmentName:
+    Description: Name of the environment.
+    Type: String
+  VpcCidr:
+    Description: CIDR block for VPC.
+    Type: String
+    Default: 10.0.0.0/16
+  Subnet01Cidr:
+    Description: CIDR block for Subnet 1.
+    Type: String
+    Default: 10.0.1.0/24
+  Subnet02Cidr:
+    Description: CIDR block for subnet 2.
+    Type: String
+    Default: 10.0.2.0/24
+Resources:
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref VpcCidr
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: !Sub "${EnvironmentName}-VPC"
+  Subnet01:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !Ref Subnet01Cidr
+      AvailabilityZone: !Select [0, !GetAZs ""]
+      Tags:
+        - Key: Name
+          Value: !Sub "${EnvironmentName} - Public Subnet 01"
+  Subnet02:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !Ref Subnet02Cidr
+      AvailabilityZone: !Select [1, !GetAZs ""]
+      Tags:
+        - Key: Name
+          Value: !Sub "${EnvironmentName} - Public Subnet 02"
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Sub "${EnvironmentName}-Internetgateway"
+  VPCGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      InternetGatewayId: !Ref InternetGateway
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub "${EnvironmentName}- VPC Gateway Attachment"
+  RouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub "${EnvironmentName} - Route Table"
+  Route:
+    Type: AWS::EC2::Route
+    DependsOn: VPCGatewayAttachment
+    Properties:
+      RouteTableId: !Ref RouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+  Subnet01RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref Subnet01
+      RouteTableId: !Ref RouteTable
+  Subnet02RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref Subnet02
+      RouteTableId: !Red RouteTable
+  SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+      Properties:
+        GroupDescription: Cluster security group
+        VpcId: !Ref VPC
+
+  K8sClusterRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service:
+                - "eks.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+      Tags:
+        - Key: Name
+          Value: !Sub "${EnvironmentName}- K8S Cluster Role"
+      Path: "/"
+      ManagedPolicyArns:
+        - "arn:aws:iam::aws:policy/AmazonEKSServicePolicy"
+        - "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"
+  K8sWorkerRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - ec2.amazonaws.com
+            Action:
+              - "sts:AssumeRole"
+      ManagedPolicyArns:
+        - "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy"
+        - "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
+        - "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
+  K8sCluster:
+    Type: AWS::EKS::Cluster
+    Properties:
+      Name: !Sub "${EnvironmentName}-K8SCluster"
+      RoleArn: !GetAtt K8sClusterRole.Arn
+      Version: "1.14"
+      ResourcesVpcConfig:
+        SecurityGroupIds:
+          - !Ref SecurityGroup
+        SubnetIds:
+          - !Ref Subnet01
+          - !Ref Subnet02
+  NodeGroup:
+    Type: AWS::EKS::Nodegroup
+    DependsOn: K8sCluster
+    Properties:
+      ClusterName: !Sub '${EnvironmentName}-K8SCluster'
+      NodeRole: !GetAtt K8sWorkerRole.Arn
+      InstanceTypes:
+        - t2.micro
+        RemoteAccess:
+          Ec2SshKey: "udacity-capstone-key"
+        Subnets:
+          - !Ref Subnet01
+          - !Ref Subnet02
+        ScalingConfig:
+          DesiredSize: 2
+          MinSize: 1
+          MaxSize: 3
+  JenkinsSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow http/ssh to EC2
+        VpcId: !Ref VPC
+        SecurityGroupIngress:
+          - IpProtocol: tcp
+            CidrIp: 0.0.0.0/0
+            FromPort: 8080
+            ToPort: 8080
+          - IpProtocol: tcp
+            CidrIp: 0.0.0.0/0
+            FromPort: 22
+            ToPort: 22
+        SecurityGroupEgress:
+          - IpProtocol: tcp
+            CidrIp: 0.0.0.0/0
+            FromPort: 0
+            ToPort: 65535
+  JenkinsInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      UserData:
+        Fn::Base64: !Sub |
+                  #!/bin/bash
+                  sudo apt-get update -y
+                  sudo apt-get install default-jdk wget -y
+                  cd /home/ubuntu
+                  wget -q -O - https://pkg.jenkins.io/debian/jenkins.io.key | sudo apt-key add -
+                  sudo sh -c 'echo deb http://pkg.jenkins.io/debian-stable binary/ > /etc/apt/sources.list.d/jenkins.list'
+                  sudo apt-get update -y
+                  sudo apt-get install jenkins tidy -y
+                  sudo systemctl status jenkins
+        SecurityGroupIds:
+          - Fn::GetAtt: JenkinsSecurityGroup.GroupId
+        SubnetId: !Ref Subnet01
+        ImageId: ami-005bdb005fb00e791
+        InstanceType: !Ref JenkingInstanceType
+        KeyName: udacity-capstone-key
+  JenkinsEIPAddress:
+    Type: AWS::EC2::EIP
+  JenkinsEIPAddressAssociation:
+    Type: AWS::EC2::EIPAssociation
+    Properties:
+      InstanceId: !Ref JenkinsInstance
+      EIP: !Ref JenkinsEIPAddress
+Outputs:
+  Eks:
+    Description: EKS Cluster
+    Value: !Ref K8sCluster
+  EksUrl:
+    Description: EKS URL
+    Value: !GetAtt K8sCluster.Endpoint
+  Jenkins:
+    Description: Jenkins EIP Address
+    Value: !Ref JenkinsEIPAddress
