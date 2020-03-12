@@ -2,13 +2,15 @@
 A hello world app in Flask.
 """
 
-from flask import Flask
+from flask import Flask, render_template
 
-app = Flask(__name__)  # pylint: disable=invalid-name
+app = Flask(__name__, static_url_path='')  # pylint: disable=invalid-name
+
 
 @app.route('/')
 def index():
     """Home page for the app."""
-    return 'Hello World!'
+    return render_template('hello.html')
 
-app.run(host='0.0.0.0', port=5000)
+
+app.run(host='localhost', port=5000)
