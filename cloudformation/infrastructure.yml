@@ -55,9 +55,6 @@ Resources:
     Properties:
       InternetGatewayId: !Ref InternetGateway
       VpcId: !Ref VPC
-      Tags:
-        - Key: Name
-          Value: !Sub "${EnvironmentName}- VPC Gateway Attachment"
   RouteTable:
     Type: AWS::EC2::RouteTable
     Properties:
@@ -81,13 +78,12 @@ Resources:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
       SubnetId: !Ref Subnet02
-      RouteTableId: !Red RouteTable
+      RouteTableId: !Ref RouteTable
   SecurityGroup:
     Type: AWS::EC2::SecurityGroup
-      Properties:
-        GroupDescription: Cluster security group
-        VpcId: !Ref VPC
-
+    Properties:
+      GroupDescription: Cluster security group
+      VpcId: !Ref VPC
   K8sClusterRole:
     Type: AWS::IAM::Role
     Properties:
@@ -139,58 +135,58 @@ Resources:
     Type: AWS::EKS::Nodegroup
     DependsOn: K8sCluster
     Properties:
-      ClusterName: !Sub '${EnvironmentName}-K8SCluster'
+      ClusterName: !Sub "${EnvironmentName}-K8SCluster"
       NodeRole: !GetAtt K8sWorkerRole.Arn
       InstanceTypes:
         - t2.micro
-        RemoteAccess:
-          Ec2SshKey: "udacity-capstone-key"
-        Subnets:
-          - !Ref Subnet01
-          - !Ref Subnet02
-        ScalingConfig:
-          DesiredSize: 2
-          MinSize: 1
-          MaxSize: 3
+      RemoteAccess:
+        Ec2SshKey: "udacity-capstone-key"
+      Subnets:
+        - !Ref Subnet01
+        - !Ref Subnet02
+      ScalingConfig:
+        DesiredSize: 2
+        MinSize: 1
+        MaxSize: 3
   JenkinsSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupDescription: Allow http/ssh to EC2
-        VpcId: !Ref VPC
-        SecurityGroupIngress:
-          - IpProtocol: tcp
-            CidrIp: 0.0.0.0/0
-            FromPort: 8080
-            ToPort: 8080
-          - IpProtocol: tcp
-            CidrIp: 0.0.0.0/0
-            FromPort: 22
-            ToPort: 22
-        SecurityGroupEgress:
-          - IpProtocol: tcp
-            CidrIp: 0.0.0.0/0
-            FromPort: 0
-            ToPort: 65535
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          CidrIp: 0.0.0.0/0
+          FromPort: 8080
+          ToPort: 8080
+        - IpProtocol: tcp
+          CidrIp: 0.0.0.0/0
+          FromPort: 22
+          ToPort: 22
+      SecurityGroupEgress:
+        - IpProtocol: tcp
+          CidrIp: 0.0.0.0/0
+          FromPort: 0
+          ToPort: 65535
   JenkinsInstance:
     Type: AWS::EC2::Instance
     Properties:
       UserData:
-        Fn::Base64: !Sub |
-                  #!/bin/bash
-                  sudo apt-get update -y
-                  sudo apt-get install default-jdk wget -y
-                  cd /home/ubuntu
-                  wget -q -O - https://pkg.jenkins.io/debian/jenkins.io.key | sudo apt-key add -
-                  sudo sh -c 'echo deb http://pkg.jenkins.io/debian-stable binary/ > /etc/apt/sources.list.d/jenkins.list'
-                  sudo apt-get update -y
-                  sudo apt-get install jenkins tidy -y
-                  sudo systemctl status jenkins
-        SecurityGroupIds:
-          - Fn::GetAtt: JenkinsSecurityGroup.GroupId
-        SubnetId: !Ref Subnet01
-        ImageId: ami-005bdb005fb00e791
-        InstanceType: !Ref JenkingInstanceType
-        KeyName: udacity-capstone-key
+        Fn::Base64: |
+          #!/bin/bash
+          sudo apt-get update -y
+          sudo apt-get install default-jdk wget -y
+          cd /home/ubuntu
+          wget -q -O - https://pkg.jenkins.io/debian/jenkins.io.key | sudo apt-key add -
+          sudo sh -c 'echo deb http://pkg.jenkins.io/debian-stable binary/ > /etc/apt/sources.list.d/jenkins.list'
+          sudo apt-get update -y
+          sudo apt-get install jenkins tidy -y
+          sudo systemctl status jenkins
+      SecurityGroupIds:
+        - Fn::GetAtt: JenkinsSecurityGroup.GroupId
+      SubnetId: !Ref Subnet01
+      ImageId: ami-005bdb005fb00e791
+      InstanceType: t2.micro
+      KeyName: udacity-capstone-key
   JenkinsEIPAddress:
     Type: AWS::EC2::EIP
   JenkinsEIPAddressAssociation:
