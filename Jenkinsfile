@@ -1,7 +1,4 @@
 pipeline {
-    environment {
-        eks_region = 'us-west-2'
-    }
     agent any
     stages {
         stage('Lint') {
@@ -22,7 +19,7 @@ pipeline {
         }
         stage('K8S Deploy')  {
             steps {
-                withAWS(credentials: 'aws-creds', region: eksRegion) {
+                withAWS(credentials: 'aws-creds', region: 'us-west-2') {
                     sh 'aws eks --region=us-west-2 update-kubeconfig --name UdacityCapstone-K8SCluster'
                     sh 'kubectl apply -f k8s_deploy.yml'
                 }
