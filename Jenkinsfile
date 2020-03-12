@@ -10,7 +10,7 @@ pipeline {
         stage('Docker build') {
             steps {
                 script {
-                    dockerImage = docker.build('vaib79/UdacityCapstone-K8SCluster:latest')
+                    dockerImage = docker.build('vaib79/udacity-capstone-k8scluster:latest')
                     docker.withRegistry('', 'docker-hub-creds') {
                         dockerImage.push()
                     }
@@ -20,7 +20,7 @@ pipeline {
         stage('K8S Deploy')  {
             steps {
                 withAWS(credentials: 'aws-creds', region: 'us-west-2') {
-                    sh 'aws eks --region=us-west-2 update-kubeconfig --name UdacityCapstone-K8SCluster'
+                    sh 'aws eks --region=us-west-2 update-kubeconfig --name udacity-capstone-k8scluster'
                     sh 'kubectl apply -f k8s_deploy.yml'
                 }
             }

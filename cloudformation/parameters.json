@@ -1,7 +1,7 @@
 [
   {
     "ParameterKey": "EnvironmentName",
-    "ParameterValue": "UdacityCapstone"
+    "ParameterValue": "udacity-capstone"
   },
   {
     "ParameterKey": "VpcCidr",

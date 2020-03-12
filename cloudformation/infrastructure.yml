@@ -122,7 +122,7 @@ Resources:
   K8sCluster:
     Type: AWS::EKS::Cluster
     Properties:
-      Name: !Sub "${EnvironmentName}-K8SCluster"
+      Name: !Sub "${EnvironmentName}-k8scluster"
       RoleArn: !GetAtt K8sClusterRole.Arn
       Version: "1.14"
       ResourcesVpcConfig:
@@ -135,7 +135,7 @@ Resources:
     Type: AWS::EKS::Nodegroup
     DependsOn: K8sCluster
     Properties:
-      ClusterName: !Sub "${EnvironmentName}-K8SCluster"
+      ClusterName: !Sub "${EnvironmentName}-k8scluster"
       NodeRole: !GetAtt K8sWorkerRole.Arn
       InstanceTypes:
         - t2.micro
