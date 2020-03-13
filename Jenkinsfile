@@ -10,7 +10,7 @@ pipeline {
         stage('Docker build') {
             steps {
                 script {
-                    dockerImage = docker.build('vaib79/udacity-capstone-k8scluster:0.2')
+                    dockerImage = docker.build('vaib79/udacity-capstone-k8scluster:0.4')
                     docker.withRegistry('', 'docker-hub-creds') {
                         dockerImage.push()
                     }
