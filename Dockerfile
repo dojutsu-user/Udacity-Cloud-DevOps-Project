@@ -1,6 +1,3 @@
-FROM python:3.8-buster
-WORKDIR /app/
-COPY . /app/
-RUN make install
+FROM nginx:latest
+COPY index.html /usr/share/nginx/html
 EXPOSE 80
-CMD ["python", "app.py"]
