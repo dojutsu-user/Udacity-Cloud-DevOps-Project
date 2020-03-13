@@ -4,7 +4,7 @@ pipeline {
         stage('Lint') {
             steps {
                 sh '''docker run --rm -i hadolint/hadolint < Dockerfile'''
-                sh 'tidy -q -e templates/*.html'
+                sh 'tidy -q -e *.html'
             }
         }
         stage('Docker build') {
