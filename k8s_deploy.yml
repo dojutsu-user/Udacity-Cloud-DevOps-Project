@@ -26,7 +26,7 @@ spec:
     spec:
       containers:
         - name: udacity-capstone-k8scluster-pod
-          image: vaib79/udacity-capstone-k8scluster:latest
+          image: vaib79/udacity-capstone-k8scluster:0.1
           imagePullPolicy: Always
           ports:
             - containerPort: 80
